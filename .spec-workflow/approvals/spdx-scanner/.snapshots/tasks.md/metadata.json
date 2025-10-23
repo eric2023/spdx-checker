@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/spdx-scanner/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-23T12:34:46.087Z",
+      "trigger": "initial",
+      "approvalId": "approval_1761222886085_zzijjl74m",
+      "approvalTitle": "SPDX Scanner Tool Tasks Specification"
+    }
+  ]
+}

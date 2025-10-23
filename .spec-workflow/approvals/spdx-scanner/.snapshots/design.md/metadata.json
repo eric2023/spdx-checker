@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/spdx-scanner/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-23T12:34:41.511Z",
+      "trigger": "initial",
+      "approvalId": "approval_1761222881508_605ezrje5",
+      "approvalTitle": "SPDX Scanner Tool Design Specification"
+    }
+  ]
+}

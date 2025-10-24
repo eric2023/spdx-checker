@@ -9,11 +9,12 @@ and templates.
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 import logging
 import re
 
 from .models import SPDXInfo, FileInfo, CorrectionResult, ValidationError, ValidationSeverity
+from .validator import SPDXValidator
 
 
 logger = logging.getLogger(__name__)
@@ -145,6 +146,7 @@ class SPDXCorrector:
         self.default_license = self.config.get('default_license', 'MIT')
         self.default_copyright_holder = self.config.get('default_copyright_holder', 'Unknown')
         self.default_project_name = self.config.get('default_project_name', 'Unknown Project')
+        self.validator = SPDXValidator()
 
     def correct_file(self, file_info: FileInfo, dry_run: bool = False) -> CorrectionResult:
         """Correct SPDX information in a file."""
@@ -156,6 +158,11 @@ class SPDXCorrector:
         )
 
         try:
+            # Validate SPDX info if present
+            if file_info.spdx_info:
+                validation_result = self.validator.validate(file_info.spdx_info)
+                file_info.spdx_info.validation_errors = validation_result.errors
+
             # Check if file needs correction
             if not file_info.needs_spdx_correction():
                 result.success = True
@@ -282,7 +289,7 @@ class SPDXCorrector:
         current_year = datetime.now().year
         return f"Copyright (c) {current_year} {self.default_copyright_holder}"
 
-    def _parse_copyright_text(self, copyright_text: Optional[str]) -> tuple[str, str]:
+    def _parse_copyright_text(self, copyright_text: Optional[str]) -> Tuple[str, str]:
         """Parse copyright text to extract year and holder."""
         if not copyright_text:
             current_year = datetime.now().year
@@ -322,7 +329,7 @@ class SPDXCorrector:
 
         return new_lines
 
-    def _find_header_boundaries(self, lines: List[str], file_info: FileInfo) -> tuple[Optional[int], Optional[int]]:
+    def _find_header_boundaries(self, lines: List[str], file_info: FileInfo) -> Tuple[Optional[int], Optional[int]]:
         """Find the start and end lines of the existing SPDX header."""
         if not file_info.spdx_info or not file_info.spdx_info.raw_declaration:
             return None, None

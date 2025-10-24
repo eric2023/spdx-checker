@@ -21,9 +21,9 @@ class SPDXPatterns:
 
     # SPDX license identifier patterns
     LICENSE_IDENTIFIER_PATTERNS = [
-        r'SPDX-License-Identifier:\s*([A-Za-z0-9\-\+\.\(\)]+)',
-        r'spdx-license-identifier:\s*([A-Za-z0-9\-\+\.\(\)]+)',
-        r'SPDX-License-Identifier\s*:\s*([A-Za-z0-9\-\+\.\(\)]+)',
+        r'SPDX-License-Identifier:\s*([A-Za-z0-9\-\+\.\(\)\s]+)',
+        r'spdx-license-identifier:\s*([A-Za-z0-9\-\+\.\(\)\s]+)',
+        r'SPDX-License-Identifier\s*:\s*([A-Za-z0-9\-\+\.\(\)\s]+)',
     ]
 
     # Copyright patterns
@@ -157,6 +157,10 @@ class SPDXParser:
             if not license_header:
                 return SPDXInfo(declaration_type=SPDXDeclarationType.NONE)
 
+            # Check if header contains any SPDX declarations
+            if not self._contains_spdx_declaration(license_header):
+                return SPDXInfo(declaration_type=SPDXDeclarationType.NONE)
+
             # Parse SPDX information from header
             spdx_info = self._parse_spdx_from_header(license_header, comment_style)
             spdx_info.declaration_type = SPDXDeclarationType.HEADER
@@ -212,7 +216,8 @@ class SPDXParser:
                     if j < len(lines):
                         header_lines.append(lines[j])
 
-                return '\n'.join(header_lines)
+                # 继续处理，不要在这里返回，以便收集所有SPDX声明
+                continue
 
             # Traditional header detection based on comment style
             if comment_style == 'c_style':
@@ -243,7 +248,9 @@ class SPDXParser:
                     header_lines.append(line)
                     in_multiline_comment = result['in_multiline']
                 elif result['is_comment'] is False and header_lines:
-                    break
+                    # 只有在不是多行注释状态时才停止
+                    if not in_multiline_comment:
+                        break
 
             # Stop at first non-empty, non-comment line
             if not in_multiline_comment and header_lines and line_stripped and not self._is_comment_line(line, comment_style):
@@ -307,7 +314,10 @@ class SPDXParser:
             else:
                 return {'is_comment': True, 'in_multiline': True}
 
-        if line_stripped.startswith('<!--'):
+        # 处理单行HTML注释
+        if line_stripped.startswith('<!--') and line_stripped.endswith('-->'):
+            return {'is_comment': True, 'in_multiline': False}
+        elif line_stripped.startswith('<!--'):
             if '-->' in line:
                 return {'is_comment': True, 'in_multiline': False}
             else:
@@ -340,10 +350,13 @@ class SPDXParser:
         """Check if line contains SPDX declaration."""
         line_upper = line.upper()
         return (
-            'SPDX-LICENSE-IDENTIFIER' in line_upper or
-            'SPDX-COPYRIGHT' in line_upper or
-            'SPDX-VERSION' in line_upper or
-            'SPDX-PROJECT' in line_upper
+            'SPDX-LICENSE-IDENTIFIER:' in line_upper or
+            'SPDX-COPYRIGHT:' in line_upper or
+            'SPDX-VERSION:' in line_upper or
+            'SPDX-PROJECT:' in line_upper or
+            'SPDX-CONTRIBUTOR:' in line_upper or
+            'SPDX-DOWNLOADLOCATION:' in line_upper or
+            'SPDX-HOMEPAGE:' in line_upper
         )
 
     def _parse_spdx_from_header(self, header: str, comment_style: str) -> SPDXInfo:
@@ -383,7 +396,10 @@ class SPDXParser:
         for pattern in self._compiled_patterns['license_id']:
             match = pattern.search(content)
             if match:
-                return match.group(1).strip()
+                license_id = match.group(1).strip()
+                # 清理HTML注释标记
+                license_id = license_id.replace('-->', '').strip()
+                return license_id
         return None
 
     def _extract_copyright(self, content: str) -> Optional[str]:
@@ -401,7 +417,14 @@ class SPDXParser:
         for pattern in self._compiled_patterns['project']:
             match = pattern.search(content)
             if match:
-                return match.group(1).strip()
+                # 如果模式包含"Project"这个词，返回完整的匹配组
+                if 'Project' in pattern.pattern:
+                    # 返回匹配组，但包含"Project"这个词
+                    start, end = match.span()
+                    project_text = content[start:end].strip()
+                    return project_text
+                else:
+                    return match.group(1).strip()
         return None
 
     def _extract_spdx_version(self, content: str) -> Optional[str]:

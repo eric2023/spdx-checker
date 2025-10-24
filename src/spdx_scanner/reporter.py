@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, TextIO
 import logging
 
-from .models import FileInfo, ScanResult, ScanSummary, ValidationSeverity
+from .models import FileInfo, ScanResult, ScanSummary, ValidationSeverity, ValidationError, SPDXDeclarationType
 
 
 logger = logging.getLogger(__name__)
@@ -160,7 +160,18 @@ class JSONReportGenerator(ReportGenerator):
             "results": [result.to_dict() for result in results],
         }
 
-        json.dump(report_data, output, indent=2, ensure_ascii=False)
+        # Custom JSON encoder for enum serialization
+        class EnumEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, ValidationSeverity):
+                    return obj.value
+                elif isinstance(obj, SPDXDeclarationType):
+                    return obj.value
+                elif isinstance(obj, datetime):
+                    return obj.isoformat()
+                return super().default(obj)
+
+        json.dump(report_data, output, indent=2, ensure_ascii=False, cls=EnumEncoder)
 
     def get_file_extension(self) -> str:
         return ".json"
@@ -256,10 +267,29 @@ class HTMLReportGenerator(ReportGenerator):
             return
 
         # Group results
+        valid_results = [r for r in results if r.is_valid() and not r.was_corrected()]
         invalid_results = [r for r in results if not r.is_valid()]
         corrected_results = [r for r in results if r.was_corrected()]
 
         output.write("<h2>Detailed Results</h2>")
+
+        if valid_results:
+            output.write("""
+        <h3>Valid Files</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Language</th>
+                    <th>License</th>
+                    <th>Issues</th>
+                </tr>
+            </thead>
+            <tbody>
+""")
+            for result in valid_results:
+                self._write_html_file_row(output, result)
+            output.write("</tbody></table>")
 
         if invalid_results:
             output.write("""
@@ -389,8 +419,21 @@ class MarkdownReportGenerator(ReportGenerator):
             return
 
         # Group results
+        valid_results = [r for r in results if r.is_valid() and not r.was_corrected()]
         invalid_results = [r for r in results if not r.is_valid()]
         corrected_results = [r for r in results if r.was_corrected()]
+
+        if valid_results:
+            output.write("## Valid Files\n\n")
+            output.write("| File | Language | License | Issues |\n")
+            output.write("|------|----------|---------|--------|\n")
+            for result in valid_results:
+                file_path = str(result.file_info.filepath)
+                language = result.file_info.language
+                license_id = result.file_info.spdx_info.license_identifier if result.file_info.spdx_info else "None"
+                issues = len(result.validation_result.errors) + len(result.validation_result.warnings)
+                output.write(f"| `{file_path}` | {language} | {license_id} | {issues} |\n")
+            output.write("\n")
 
         if invalid_results:
             output.write("## Invalid Files\n\n")

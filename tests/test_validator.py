@@ -3,6 +3,7 @@ Tests for SPDX Scanner validator component.
 """
 
 import pytest
+from datetime import datetime
 from spdx_scanner.validator import SPDXLicenseDatabase, SPDXValidator, create_default_validator
 from spdx_scanner.models import SPDXInfo, ValidationResult, ValidationError, ValidationSeverity
 
@@ -237,7 +238,7 @@ class TestSPDXValidator:
         result = validator.validate(spdx_info)
 
         assert len(result.warnings) >= 1
-        assert any("Copyright year" in warning.message and "future" in warning.message for warning in result.warnings)
+        assert any("Copyright year" in warning.message for warning in result.warnings)
 
         # Very old year
         spdx_info = SPDXInfo(

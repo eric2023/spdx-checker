@@ -8,6 +8,7 @@ SPDX license declaration processing.
 
 import chardet
 import mimetypes
+import os
 from pathlib import Path
 from typing import List, Optional, Set, Iterator, Dict, Any
 import logging
@@ -302,6 +303,14 @@ class FileScanner:
                 logger.warning(f"Not a regular file: {filepath}")
                 return None
 
+            # Check file size
+            try:
+                if filepath.stat().st_size > self.max_file_size:
+                    logger.warning(f"Skipping large file: {filepath}")
+                    return None
+            except (OSError, FileNotFoundError):
+                return None
+
             # Skip binary files
             if self._is_likely_binary(filepath):
                 logger.debug(f"Skipping binary file: {filepath}")
@@ -357,10 +366,10 @@ class FileScanner:
 
     def _walk_directory(self, directory: Path):
         """Walk directory with optional symlink following."""
-        if self.follow_symlinks:
-            return directory.walk()
-        else:
-            return directory.walk(follow_symlinks=False)
+        # Use os.walk for Python 3.7 compatibility
+        for root, dirs, files in os.walk(str(directory), followlinks=self.follow_symlinks):
+            root_path = Path(root)
+            yield root_path, dirs, files
 
     def _is_likely_binary(self, filepath: Path) -> bool:
         """Check if file is likely binary based on extension."""

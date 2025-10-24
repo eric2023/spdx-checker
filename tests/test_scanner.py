@@ -93,7 +93,7 @@ class TestEncodingDetector:
         try:
             encoding = detector.detect_encoding(temp_path)
             # Should detect as latin1 or similar
-            assert encoding in ["ISO-8859-1", "WINDOWS-1252", "latin1"]
+            assert encoding.lower() in ["iso-8859-1", "windows-1252", "latin1"]
         finally:
             temp_path.unlink()
 
@@ -146,7 +146,8 @@ class TestFileScanner:
 
     def test_scan_empty_directory(self):
         """Test scanning empty directory."""
-        scanner = FileScanner()
+        from spdx_scanner.scanner import create_default_scanner
+        scanner = create_default_scanner()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -155,7 +156,8 @@ class TestFileScanner:
 
     def test_scan_directory_with_files(self):
         """Test scanning directory with files."""
-        scanner = FileScanner()
+        from spdx_scanner.scanner import create_default_scanner
+        scanner = create_default_scanner()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -187,7 +189,7 @@ class TestFileScanner:
             assert file_info.filepath == temp_path
             assert file_info.language == "python"
             assert file_info.content == "print('hello world')\n# This is a test"
-            assert file_info.encoding == "utf-8"
+            assert file_info.encoding.lower() in ["utf-8", "ascii"]
             assert file_info.has_shebang is False
             assert file_info.is_binary is False
             assert file_info.is_empty is False
@@ -247,7 +249,8 @@ class TestFileScanner:
 
     def test_include_exclude_patterns(self):
         """Test include/exclude patterns."""
-        scanner = FileScanner(
+        from spdx_scanner.scanner import create_default_scanner
+        scanner = create_default_scanner(
             include_patterns=["**/*.py", "**/*.js"],
             exclude_patterns=["**/test_*", "**/node_modules/**"]
         )

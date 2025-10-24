@@ -7,6 +7,7 @@ for the SPDX scanner tool, supporting JSON, TOML, and command-line arguments.
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass, field, asdict

@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Tuple
 
 
 class SPDXDeclarationType(Enum):
@@ -55,7 +55,7 @@ class SPDXInfo:
     declaration_type: SPDXDeclarationType = SPDXDeclarationType.NONE
     validation_errors: List[ValidationError] = field(default_factory=list)
     raw_declaration: Optional[str] = None
-    line_range: Optional[tuple[int, int]] = None
+    line_range: Optional[Tuple[int, int]] = None
 
     def is_valid(self) -> bool:
         """Check if the SPDX information is valid."""
@@ -77,7 +77,9 @@ class SPDXInfo:
         import re
         year_pattern = r'\b(19|20)\d{2}\b'
         years = re.findall(year_pattern, self.copyright_text)
-        return [int(year) for year in years]
+        # re.findall返回的是捕获组，我们需要完整的匹配
+        year_matches = re.finditer(year_pattern, self.copyright_text)
+        return [int(match.group()) for match in year_matches]
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -287,7 +289,7 @@ class CorrectionResult:
 
     def has_changes(self) -> bool:
         """Check if any changes were made."""
-        return len(self.changes_made) > 0 or self.original_content != self.corrected_content
+        return self.original_content != self.corrected_content
 
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of the correction."""
@@ -398,6 +400,6 @@ class ScanSummary:
             "scan_duration": self.scan_duration,
             "start_time": self.start_time.isoformat() if self.start_time else None,
             "end_time": self.end_time.isoformat() if self.end_time else None,
-            "success_rate": self.get_success_rate(),
-            "correction_rate": self.get_correction_rate(),
+            "success_rate": round(self.get_success_rate(), 2),
+            "correction_rate": round(self.get_correction_rate(), 2),
         }

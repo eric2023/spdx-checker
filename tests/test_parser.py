@@ -6,7 +6,7 @@ import re
 import pytest
 from spdx_scanner.parser import SPDXParser, SPDXPatterns, create_default_parser
 from spdx_scanner.models import SPDXInfo, SPDXDeclarationType, ValidationError, ValidationSeverity
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 
 class TestSPDXPatterns:

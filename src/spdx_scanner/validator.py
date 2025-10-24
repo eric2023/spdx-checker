@@ -137,37 +137,40 @@ class SPDXLicenseDatabase:
     @classmethod
     def is_valid_license_id(cls, license_id: str) -> bool:
         """Check if license ID is valid."""
-        # Handle simple license IDs
-        if license_id in cls.CORE_LICENSES:
-            return True
+        license_id = license_id.strip()
 
-        # Handle "WITH" expressions (license WITH exception)
+        # Handle parentheses for grouping - recursively validate content
+        if license_id.startswith('(') and license_id.endswith(')'):
+            return cls.is_valid_license_id(license_id[1:-1])
+
+        # Handle nested parentheses and complex expressions
+        # Remove outer parentheses for processing
+        while license_id.startswith('(') and license_id.endswith(')'):
+            license_id = license_id[1:-1]
+
+        # Handle OR expressions first (lowest precedence)
+        if ' OR ' in license_id:
+            licenses = [part.strip() for part in license_id.split(' OR ')]
+            return all(cls.is_valid_license_id(lic) for lic in licenses)
+
+        # Handle AND expressions (higher precedence than OR)
+        if ' AND ' in license_id:
+            licenses = [part.strip() for part in license_id.split(' AND ')]
+            return all(cls.is_valid_license_id(lic) for lic in licenses)
+
+        # Handle WITH expressions (highest precedence)
         if ' WITH ' in license_id:
             parts = license_id.split(' WITH ')
             if len(parts) == 2:
                 base_license = parts[0].strip()
                 exception = parts[1].strip()
                 return (
-                    base_license in cls.CORE_LICENSES and
+                    cls.is_valid_license_id(base_license) and
                     exception in cls.LICENSE_EXCEPTIONS
                 )
 
-        # Handle "OR" expressions (license disjunction)
-        if ' OR ' in license_id:
-            licenses = [part.strip() for part in license_id.split(' OR ')]
-            return all(lic in cls.CORE_LICENSES for lic in licenses)
-
-        # Handle "AND" expressions (license conjunction)
-        if ' AND ' in license_id:
-            licenses = [part.strip() for part in license_id.split(' AND ')]
-            return all(lic in cls.CORE_LICENSES for lic in licenses)
-
-        # Handle parentheses for grouping
-        license_id = license_id.strip()
-        if license_id.startswith('(') and license_id.endswith(')'):
-            return cls.is_valid_license_id(license_id[1:-1])
-
-        return False
+        # Handle simple license IDs
+        return license_id in cls.CORE_LICENSES
 
     @classmethod
     def get_license_info(cls, license_id: str) -> Optional[Dict[str, Any]]:
@@ -507,7 +510,8 @@ class SPDXValidator:
 
     def _extract_copyright_years(self, copyright_text: str) -> List[int]:
         """Extract copyright years from copyright text."""
-        year_pattern = r'\b(19|20)\d{2}\b'
+        # Match 4-digit years (e.g., 1800, 1970, 2025, etc.)
+        year_pattern = r'\b\d{4}\b'
         years = re.findall(year_pattern, copyright_text)
         return [int(year) for year in years]
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2023 Example Corporation
-// Example Project
+// Copyright (c) 2025 SPDX Scanner Team
+// SPDX Scanner
 
 /**
  * Example JavaScript file demonstrating proper SPDX license header.

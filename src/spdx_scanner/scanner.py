@@ -239,7 +239,10 @@ class FileScanner:
         logger.info(f"Starting directory scan: {directory}")
 
         # Convert patterns to Path objects for matching
-        from pathspec import PathSpec
+        try:
+            from pathspec import PathSpec
+        except ImportError:
+            from .pathspec import PathSpec
         include_spec = PathSpec.from_lines("gitwildmatch", self.include_patterns)
         exclude_spec = PathSpec.from_lines("gitwildmatch", self.exclude_patterns)
 
@@ -398,18 +401,23 @@ class FileScanner:
 def create_default_scanner(
     include_patterns: Optional[List[str]] = None,
     exclude_patterns: Optional[List[str]] = None,
+    source_file_extensions: Optional[List[str]] = None,
 ) -> FileScanner:
-    """Create a file scanner with sensible defaults."""
-    # Default include patterns for source code files
-    default_include = [
-        "**/*.py", "**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx",
-        "**/*.java", "**/*.c", "**/*.cpp", "**/*.h", "**/*.hpp",
-        "**/*.go", "**/*.rs", "**/*.rb", "**/*.php", "**/*.swift",
-        "**/*.kt", "**/*.scala", "**/*.m", "**/*.mm", "**/*.pl",
-        "**/*.lua", "**/*.dart", "**/*.vue", "**/*.svelte",
-        "**/*.sh", "**/*.bash", "**/*.zsh", "**/*.fish",
-        "**/*.html", "**/*.htm", "**/*.css", "**/*.scss", "**/*.sass", "**/*.less",
-        "**/*.json", "**/*.yaml", "**/*.yml", "**/*.toml", "**/*.xml",
+    """Create a file scanner with sensible defaults.
+
+    Args:
+        include_patterns: Custom include patterns (glob-style)
+        exclude_patterns: Custom exclude patterns (glob-style)
+        source_file_extensions: List of file extensions to scan (e.g., ['.c', '.cpp', '.h', '.go'])
+                               If provided, these are converted to include patterns
+                               Default: ['.h', '.cpp', '.c', '.go']
+    """
+    # Default source file extensions for C/C++ and Go
+    default_source_extensions = [
+        ".h",      # C/C++ header files
+        ".cpp",    # C++ source files
+        ".c",      # C source files
+        ".go",     # Go source files
     ]
 
     # Default exclude patterns
@@ -436,8 +444,24 @@ def create_default_scanner(
         "**/.nox/**",
     ]
 
+    # Determine include patterns
+    if include_patterns:
+        # Use custom include patterns if provided
+        final_include = include_patterns
+    elif source_file_extensions:
+        # Generate include patterns from source file extensions
+        # Ensure extensions start with dot
+        final_extensions = [
+            ext if ext.startswith('.') else f'.{ext}'
+            for ext in source_file_extensions
+        ]
+        final_include = [f"**/*{ext}" for ext in final_extensions]
+    else:
+        # Use default source extensions
+        final_include = [f"**/*{ext}" for ext in default_source_extensions]
+
     return FileScanner(
-        include_patterns=include_patterns or default_include,
+        include_patterns=final_include,
         exclude_patterns=exclude_patterns or default_exclude,
         follow_symlinks=False,
         max_file_size=10 * 1024 * 1024,  # 10MB

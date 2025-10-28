@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.7"
 license = {text = "MIT"}
 authors = [
-    {name = "SPDX Scanner Team", email = "team@example.com"},
+    {name = "SPDX Scanner Team", email = "team@spdx-scanner.dev"},
 ]
 keywords = ["spdx", "license", "scanner", "compliance", "open-source"]
 classifiers = [
@@ -58,9 +58,9 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/example/spdx-scanner"
-Repository = "https://github.com/example/spdx-scanner"
-Issues = "https://github.com/example/spdx-scanner/issues"
+Homepage = "<homepage-url>"
+Repository = "<repository-url>"
+Issues = "<issues-url>"
 
 [project.scripts]
 spdx-scanner = "spdx_scanner.cli:main"

@@ -1,0 +1,193 @@
+# SPDX Scanner 自动化验证工具配置文件
+# 此文件定义了验证工具的默认行为和参数
+
+# SPDX 组件验证配置
+spdx:
+  # 是否验证各个组件
+  verify_parser: true
+  verify_validator: true
+  verify_corrector: true
+  verify_reporter: true
+  verify_scanner: true
+
+  # 验证阈值
+  accuracy_threshold: 0.95  # 期望的准确率阈值
+  test_coverage_threshold: 0.80  # 期望的测试覆盖率阈值
+
+  # 详细验证选项
+  detailed_parsing: true     # 详细解析测试
+  complex_license_test: true # 复杂许可证表达式测试
+  error_handling_test: true  # 错误处理测试
+
+# 代码质量验证配置
+quality:
+  # 复杂度阈值
+  max_complexity: 15         # 最大允许复杂度
+  max_function_length: 50    # 函数最大行数
+  max_class_length: 200      # 类最大行数
+  max_nesting_depth: 4       # 最大嵌套深度
+
+  # 测试覆盖率
+  min_coverage: 0.80         # 最小测试覆盖率要求
+
+  # 检查选项
+  check_duplicates: true     # 检查重复代码
+  check_dependencies: true   # 检查依赖关系
+  check_complexity: true     # 检查复杂度
+  check_length: true         # 检查代码长度
+
+  # 外部工具配置
+  use_flake8: true          # 使用flake8检查代码风格
+  use_mypy: false           # 使用mypy进行类型检查（可选择启用）
+  use_black: true           # 使用black检查代码格式
+
+# 集成测试配置
+integration:
+  # 测试范围
+  test_cli: true             # 测试CLI接口
+  test_config: true          # 测试配置处理
+  test_file_processing: true # 测试文件处理
+  test_reporting: true       # 测试报告生成
+  test_end_to_end: true      # 测试端到端流程
+  test_git_integration: true # 测试Git集成
+  test_error_handling: true  # 测试错误处理
+
+  # 性能测试
+  performance_test: true     # 执行性能测试
+  performance_threshold: 30  # 性能测试时间阈值（秒）
+
+  # 测试文件数量
+  test_file_count: 50       # 性能测试用文件数量
+
+# 自动修正配置
+auto_fix:
+  # 启用自动修正
+  enable_auto_fix: true
+
+  # 修正策略
+  fix_code_quality: true     # 修复代码质量问题
+  fix_test_issues: true      # 修复测试问题
+  fix_configuration: true    # 修复配置问题
+  fix_imports: true          # 修复导入问题
+  fix_formatting: true       # 修复格式问题
+
+  # 备份设置
+  backup_files: true         # 创建备份文件
+  keep_backups: false        # 保留备份文件（默认为false，验证后清理）
+  backup_retention_days: 7   # 备份保留天数
+
+  # 安全设置
+  auto_backup_before_fix: true  # 修正前自动备份
+  require_confirmation: false   # 需要确认（对高风险修复）
+  max_files_per_fix: 100       # 单次修复最大文件数
+
+# 报告配置
+report:
+  # 默认输出格式
+  format: 'console'          # console, json, html, markdown
+
+  # 报告内容
+  include_details: true      # 包含详细信息
+  include_recommendations: true # 包含改进建议
+  include_metrics: true      # 包含度量指标
+  include_performance: true  # 包含性能信息
+
+  # 输出设置
+  verbose_output: false      # 详细输出
+  show_progress: true        # 显示进度
+  color_output: true         # 彩色输出
+
+  # 文件输出
+  output_directory: 'verification_reports'  # 输出目录
+  include_timestamp: true    # 包含时间戳
+  compress_reports: false    # 压缩报告文件
+
+# 验证模式配置
+modes:
+  # 快速验证模式 - 仅基础检查
+  quick:
+    timeout: 300             # 5分钟超时
+    components: ['quick']     # 仅运行快速检查
+    auto_fix: false          # 禁用自动修正
+    verbose: false           # 关闭详细输出
+
+  # 标准验证模式 - 平衡的验证
+  standard:
+    timeout: 900             # 15分钟超时
+    components: ['spdx', 'quality'] # 运行SPDX和质量检查
+    auto_fix: true           # 启用自动修正
+    verbose: true            # 详细输出
+
+  # 完整验证模式 - 全面的检查
+  full:
+    timeout: 1800            # 30分钟超时
+    components: ['spdx', 'quality', 'integration'] # 运行所有检查
+    auto_fix: true           # 启用自动修正
+    verbose: true            # 详细输出
+    performance_test: true   # 包含性能测试
+
+  # CI模式 - 适合持续集成
+  ci:
+    timeout: 600             # 10分钟超时
+    components: ['spdx', 'quality', 'integration'] # 核心检查
+    auto_fix: false          # CI中禁用自动修正
+    verbose: false           # 最小输出
+    exit_on_critical: true   # 关键错误时退出
+
+# 日志配置
+logging:
+  level: 'INFO'              # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: 'verification.log'   # 日志文件路径
+  max_size: '10MB'           # 日志文件最大大小
+  backup_count: 5            # 备份文件数量
+
+  # 控制台输出
+  console_output: true       # 输出到控制台
+  console_level: 'INFO'      # 控制台日志级别
+
+# 高级配置
+advanced:
+  # 并行处理
+  max_workers: 4             # 最大并行工作线程数
+  parallel_file_processing: true # 并行文件处理
+
+  # 缓存配置
+  enable_cache: true         # 启用缓存
+  cache_ttl: 3600           # 缓存生存时间（秒）
+
+  # 超时设置
+  default_timeout: 30        # 默认操作超时（秒）
+  long_operation_timeout: 300 # 长操作超时（秒）
+
+  # 重试配置
+  max_retries: 3             # 最大重试次数
+  retry_delay: 1             # 重试延迟（秒）
+
+  # 资源限制
+  max_memory_usage: '1GB'    # 最大内存使用
+  max_disk_usage: '100MB'    # 最大磁盘使用（临时文件）
+
+# 环境特定配置
+environments:
+  # 开发环境
+  development:
+    verbose: true
+    auto_fix: true
+    keep_backups: true
+    detailed_reporting: true
+
+  # 测试环境
+  testing:
+    verbose: false
+    auto_fix: false
+    performance_test: false
+    strict_mode: false
+
+  # 生产环境
+  production:
+    verbose: false
+    auto_fix: false
+    performance_test: true
+    strict_mode: true
+    backup_required: true

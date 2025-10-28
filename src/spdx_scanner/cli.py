@@ -105,6 +105,12 @@ def main(ctx: click.Context, config: Optional[Path], verbose: bool, quiet: bool)
     help="Exclude file patterns (can be used multiple times)",
 )
 @click.option(
+    "--extensions",
+    "-e",
+    multiple=True,
+    help="Source file extensions to scan (e.g., .c .cpp .h .go). Default: .h .cpp .c .go",
+)
+@click.option(
     "--follow-symlinks",
     is_flag=True,
     help="Follow symbolic links",
@@ -123,6 +129,7 @@ def scan(
     output: Optional[Path],
     include: tuple,
     exclude: tuple,
+    extensions: tuple,
     follow_symlinks: bool,
     max_file_size: int,
 ) -> None:
@@ -137,9 +144,15 @@ def scan(
 
     try:
         # Create scanner with configuration
+        source_extensions = None
+        if extensions:
+            # Ensure extensions start with dot
+            source_extensions = [ext if ext.startswith('.') else f'.{ext}' for ext in extensions]
+
         scanner = create_default_scanner(
             include_patterns=list(include) if include else None,
             exclude_patterns=list(exclude) if exclude else None,
+            source_file_extensions=source_extensions,
         )
         scanner.follow_symlinks = follow_symlinks
         scanner.max_file_size = max_file_size

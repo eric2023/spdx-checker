@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass, field, asdict
 
-import toml
+try:
+    import toml
+except ImportError:
+    # Use local minimal implementation if toml package is not available
+    from . import toml
 
 
 logger = logging.getLogger(__name__)
@@ -50,16 +54,13 @@ class ScannerSettings:
     """Scanner settings configuration."""
     follow_symlinks: bool = False
     max_file_size: int = 10 * 1024 * 1024  # 10MB
-    include_patterns: List[str] = field(default_factory=lambda: [
-        "**/*.py", "**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx",
-        "**/*.java", "**/*.c", "**/*.cpp", "**/*.h", "**/*.hpp",
-        "**/*.go", "**/*.rs", "**/*.rb", "**/*.php", "**/*.swift",
-        "**/*.kt", "**/*.scala", "**/*.m", "**/*.mm", "**/*.pl",
-        "**/*.lua", "**/*.dart", "**/*.vue", "**/*.svelte",
-        "**/*.sh", "**/*.bash", "**/*.zsh", "**/*.fish",
-        "**/*.html", "**/*.htm", "**/*.css", "**/*.scss", "**/*.sass", "**/*.less",
-        "**/*.json", "**/*.yaml", "**/*.yml", "**/*.toml", "**/*.xml",
+    source_file_extensions: List[str] = field(default_factory=lambda: [
+        ".h",      # C/C++ header files
+        ".cpp",    # C++ source files
+        ".c",      # C source files
+        ".go",     # Go source files
     ])
+    include_patterns: List[str] = field(default_factory=list)
     exclude_patterns: List[str] = field(default_factory=lambda: [
         "**/node_modules/**",
         "**/build/**",
@@ -82,6 +83,11 @@ class ScannerSettings:
         "**/.tox/**",
         "**/.nox/**",
     ])
+
+    def __post_init__(self):
+        """Generate include_patterns from source_file_extensions if not set."""
+        if not self.include_patterns:
+            self.include_patterns = [f"**/*{ext}" for ext in self.source_file_extensions]
 
 
 @dataclass
@@ -147,7 +153,15 @@ class Configuration:
             config.correction_settings = CorrectionSettings(**data['correction_settings'])
 
         if 'scanner_settings' in data:
-            config.scanner_settings = ScannerSettings(**data['scanner_settings'])
+            scanner_data = data['scanner_settings'].copy()
+            # Handle source_file_extensions if present
+            if 'source_file_extensions' in scanner_data and scanner_data['source_file_extensions']:
+                # Ensure extensions start with dot
+                scanner_data['source_file_extensions'] = [
+                    ext if ext.startswith('.') else f'.{ext}'
+                    for ext in scanner_data['source_file_extensions']
+                ]
+            config.scanner_settings = ScannerSettings(**scanner_data)
 
         if 'output_settings' in data:
             config.output_settings = OutputSettings(**data['output_settings'])
@@ -327,6 +341,19 @@ class ConfigManager:
 
         if 'exclude_patterns' in args and args['exclude_patterns'] is not None:
             self.config.scanner_settings.exclude_patterns = args['exclude_patterns']
+
+        if 'source_file_extensions' in args and args['source_file_extensions'] is not None:
+            # Ensure extensions start with dot
+            extensions = args['source_file_extensions']
+            if extensions:
+                self.config.scanner_settings.source_file_extensions = [
+                    ext if ext.startswith('.') else f'.{ext}'
+                    for ext in extensions
+                ]
+                # Regenerate include_patterns from extensions
+                self.config.scanner_settings.include_patterns = [
+                    f"**/*{ext}" for ext in self.config.scanner_settings.source_file_extensions
+                ]
 
         if 'follow_symlinks' in args and args['follow_symlinks'] is not None:
             self.config.scanner_settings.follow_symlinks = args['follow_symlinks']

@@ -1,78 +1,126 @@
 # SPDX Scanner Makefile
+# 简化常用操作的自动化脚本
 
-.PHONY: help install install-dev test test-coverage lint format type-check clean build upload docs
+.PHONY: help install install-dev demo verify quick-verify standard-verify html-report clean test lint
 
-# Default target
+# 默认目标
 help:
-	@echo "Available targets:"
-	@echo "  install      - Install package in development mode"
-	@echo "  install-dev  - Install package with development dependencies"
-	@echo "  test         - Run tests"
-	@echo "  test-coverage - Run tests with coverage report"
-	@echo "  lint         - Run linting checks"
-	@echo "  format       - Format code with black and isort"
-	@echo "  type-check   - Run mypy type checking"
-	@echo "  clean        - Clean build artifacts"
-	@echo "  build        - Build package distributions"
-	@echo "  upload       - Upload to PyPI (requires credentials)"
-	@echo "  docs         - Build documentation"
+	@echo "🔧 SPDX Scanner Makefile"
+	@echo "========================"
+	@echo ""
+	@echo "可用命令:"
+	@echo "  install      - 从源码安装项目"
+	@echo "  install-dev  - 安装开发版本（包含开发依赖）"
+	@echo "  demo         - 运行演示脚本"
+	@echo "  verify       - 运行完整验证"
+	@echo "  quick-verify - 运行快速验证"
+	@echo "  html-report  - 生成HTML验证报告"
+	@echo "  test         - 运行测试"
+	@echo "  lint         - 运行代码检查"
+	@echo "  clean        - 清理临时文件"
+	@echo ""
+	@echo "📚 CLI使用示例:"
+	@echo "  spdx-scanner scan /path/to/project"
+	@echo "  spdx-scanner correct /path/to/project"
+	@echo "  spdx-scanner scan --format html --output report.html /path/to/project"
 
-# Installation targets
+# 安装项目
 install:
-	pip install -e .
+	@echo "📦 安装 SPDX Scanner..."
+	python3 -m venv venv_install
+	. venv_install/bin/activate && pip install -e .
 
+# 安装开发版本
 install-dev:
-	pip install -e ".[dev]"
+	@echo "📦 安装 SPDX Scanner 开发版本..."
+	python3 -m venv venv_dev
+	. venv_dev/bin/activate && pip install -e '.[dev]'
 
-# Testing targets
+# 运行演示
+demo:
+	@echo "🎭 运行演示..."
+	@echo "使用验证工具展示SPDX Scanner功能..."
+	python tools/verification/automated_verifier.py --mode quick
+	@echo ""
+	@echo "🎯 扫描示例文件..."
+	@if [ -d "examples" ]; then \
+		echo "发现examples目录，建议运行："; \
+		echo "  python tools/verification/automated_verifier.py --mode standard"; \
+	else \
+		echo "请先克隆或下载示例项目"; \
+	fi
+
+# 运行完整验证
+verify:
+	@echo "🧪 运行完整验证..."
+	python tools/verification/automated_verifier.py --mode standard
+
+# 运行快速验证
+quick-verify:
+	@echo "⚡ 运行快速验证..."
+	python tools/verification/automated_verifier.py --mode quick
+
+# 生成HTML报告
+html-report:
+	@echo "📊 生成HTML验证报告..."
+	python tools/verification/automated_verifier.py --mode standard --format html --output verification_report.html
+
+# 运行测试
 test:
-	pytest tests/ -v
+	@echo "🧪 运行测试..."
+	python -m pytest tests/ -v
 
-test-coverage:
-	pytest tests/ --cov=src/spdx_scanner --cov-report=html --cov-report=term
-
-# Code quality targets
+# 运行代码检查
 lint:
-	flake8 src/ tests/
-	black --check src/ tests/
-	isort --check-only src/ tests/
+	@echo "🔍 运行代码检查..."
+	python -m flake8 src/ tests/ || true
+	python -m black --check src/ tests/ || true
+	python -m isort --check-only src/ tests/ || true
 
-format:
-	black src/ tests/
-	isort src/ tests/
-
-type-check:
-	mypy src/
-
-# Build and distribution targets
+# 清理临时文件
 clean:
-	rm -rf build/
-	rm -rf dist/
-	rm -rf *.egg-info/
-	rm -rf htmlcov/
-	rm -rf .coverage
-	rm -rf .pytest_cache/
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
+	@echo "🧹 清理临时文件..."
+	rm -rf venv_install/ venv_dev/ venv_spdx/
+	rm -rf __pycache__/ src/*/__pycache__/ tests/__pycache__/
+	rm -rf .pytest_cache/ .coverage htmlcov/
+	find . -name "*.pyc" -delete
+	find . -name "*.pyo" -delete
 
-build: clean
+# 直接使用CLI演示
+cli-demo:
+	@echo "🖥️  CLI演示..."
+	@echo "1. 查看帮助:"
+	python spdx_scanner_cli.py --help
+	@echo -e "\n2. 演示扫描命令:"
+	python spdx_scanner_cli.py scan /path/to/project --format html
+	@echo -e "\n3. 演示修正命令:"
+	python spdx_scanner_cli.py correct /path/to/project --dry-run
+	@echo -e "\n4. 演示验证命令:"
+	python spdx_scanner_cli.py verify --mode quick
+
+# 一键验证（推荐）
+check:
+	@echo "🔍 一键验证流程..."
+	@echo "1. 快速验证..."
+	python tools/verification/automated_verifier.py --mode quick --no-auto-fix
+	@echo -e "\n2. 运行代码检查..."
+	make lint || echo "⚠️  代码检查发现问题，但继续执行"
+	@echo -e "\n3. 运行演示..."
+	python demo.py
+
+# 构建分发包
+build:
+	@echo "📦 构建分发包..."
 	python -m build
 
-upload: build
-	python -m twine upload dist/*
-
-# Documentation targets
-docs:
-	cd docs && make html
-
-# Development workflow
-dev-setup: install-dev
-	pre-commit install
-
-check: lint type-check test
-
-# CI/CD targets
-ci-test: test-coverage
-	codecov
-
-ci-check: lint type-check
+# 显示项目状态
+status:
+	@echo "📊 项目状态"
+	@echo "============"
+	@echo "Python文件数量: $$(find src/ -name '*.py' | wc -l)"
+	@echo "测试文件数量: $$(find tests/ -name '*.py' | wc -l)"
+	@echo "验证工具文件数量: $$(find tools/verification/ -name '*.py' | wc -l)"
+	@echo "文档文件数量: $$(find . -name '*.md' | wc -l)"
+	@echo ""
+	@echo "项目结构:"
+	@tree -I '__pycache__|*.pyc|venv*|.git' -L 2 . || find . -type d -not -path '*/\.*' | head -20

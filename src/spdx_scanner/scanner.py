@@ -210,6 +210,25 @@ class EncodingDetector:
         return (printable_count / total_count) < 0.9
 
 
+class ScanResult:
+    """包装扫描结果，提供所需属性接口"""
+
+    def __init__(self, files: List[FileInfo]):
+        self.files = files
+        self.files_scanned = len(files)
+        self.file_results = files  # 别名，提供兼容性
+
+    def __iter__(self):
+        """使对象可迭代"""
+        return iter(self.files)
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, index):
+        return self.files[index]
+
+
 class FileScanner:
     """Scans directories and files for SPDX license analysis."""
 
@@ -293,6 +312,11 @@ class FileScanner:
                     continue
 
         logger.info(f"Directory scan completed. Total files scanned: {file_count}")
+
+    def scan_directory_with_results(self, directory: Path) -> ScanResult:
+        """Scan directory and return ScanResult with properties."""
+        files = list(self.scan_directory(directory))
+        return ScanResult(files)
 
     def scan_file(self, filepath: Path) -> Optional[FileInfo]:
         """Scan a single file and return FileInfo."""

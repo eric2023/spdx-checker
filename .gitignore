@@ -150,3 +150,8 @@ build/
 coverage/
 *.tmp
 *.temp
+
+# SPDX Scanner specific
+.claude/
+verification_backups/
+spdx_scanner.log

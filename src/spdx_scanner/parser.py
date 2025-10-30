@@ -429,10 +429,18 @@ class SPDXParser:
 
     def _extract_spdx_version(self, content: str) -> Optional[str]:
         """Extract SPDX version from content."""
+        # 首先尝试直接匹配版本模式
         for pattern in self._compiled_patterns['spdx_version']:
             match = pattern.search(content)
             if match:
                 return match.group(1).strip()
+
+        # 如果没有显式版本，但有其他SPDX声明，推断版本
+        if any(spdx_keyword in content.upper() for spdx_keyword in ['SPDX-LICENSE-IDENTIFIER', 'SPDX-FILETYPE']):
+            # 如果存在SPDX-LICENSE-IDENTIFIER，这是SPDX 2.0+的特征
+            if 'SPDX-LICENSE-IDENTIFIER' in content.upper():
+                return "2.3"  # 默认返回当前推荐的版本
+
         return None
 
     def _extract_additional_tags(self, content: str) -> Dict[str, str]:

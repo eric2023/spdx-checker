@@ -1,0 +1,75 @@
+name: SPDX Scanner CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', 3.11, 3.12]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Run automated verification
+      run: |
+        python tools/verification/automated_verifier.py --mode standard
+
+    - name: Run tests with coverage
+      run: |
+        python -m pytest tests/ --cov=src/spdx_scanner --cov-report=xml --cov-report=html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black flake8 mypy isort
+
+    - name: Code quality checks
+      run: |
+        # 代码格式化检查
+        black --check src/ tests/ tools/
+
+        # 导入排序检查
+        isort --check-only src/ tests/ tools/
+
+        # 代码风格检查
+        flake8 src/ tests/ tools/
+
+        # 类型检查
+        mypy src/
+
+    - name: Quick verification
+      run: |
+        python tools/verification/automated_verifier.py --mode quick

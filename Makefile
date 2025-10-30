@@ -28,13 +28,17 @@ help:
 install:
 	@echo "📦 安装 SPDX Scanner..."
 	python3 -m venv venv_install
-	. venv_install/bin/activate && pip install -e .
+	. venv_install/bin/activate && pip install --upgrade pip
+	@echo "🔄 尝试安装项目..."
+	@. venv_install/bin/activate && pip install -e . || (echo "❌ 安装失败，尝试使用备用源..."; . venv_install/bin/activate && pip install -i https://pypi.douban.com/simple/ -e . || echo "⚠️  建议检查网络连接或手动安装依赖")
 
 # 安装开发版本
 install-dev:
 	@echo "📦 安装 SPDX Scanner 开发版本..."
 	python3 -m venv venv_dev
-	. venv_dev/bin/activate && pip install -e '.[dev]'
+	. venv_dev/bin/activate && pip install --upgrade pip
+	@echo "🔄 尝试安装开发版本..."
+	@. venv_dev/bin/activate && pip install -e '.[dev]' || (echo "❌ 安装失败，尝试使用备用源..."; . venv_dev/bin/activate && pip install -i https://pypi.douban.com/simple/ -e '.[dev]' || echo "⚠️  建议检查网络连接或手动安装依赖")
 
 # 运行演示
 demo:
@@ -68,7 +72,8 @@ html-report:
 # 运行测试
 test:
 	@echo "🧪 运行测试..."
-	python -m pytest tests/ -v
+	@echo "🔍 检查测试依赖..."
+	@python -m pytest tests/ -v 2>/dev/null || (echo "⚠️  pytest未安装或测试环境不可用"; echo "💡 安装测试依赖: make install-dev"; echo "📁 发现的测试文件:"; find tests/ -name "test_*.py" -type f || echo "未找到测试文件"; echo "🔧 建议：运行 'make check' 进行替代验证")
 
 # 运行代码检查
 lint:

@@ -140,6 +140,10 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+fail_under = 80
+show_missing = true
+skip_covered = false
+precision = 2
 
 [tool.coverage.html]
 directory = "htmlcov"

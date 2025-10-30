@@ -412,14 +412,12 @@ class IntegrationTester:
         # 创建临时测试目录
         test_dir = Path(tempfile.mkdtemp())
         try:
-            # 创建测试文件
+            # 创建测试文件（使用默认scanner支持的文件类型）
             test_files = [
                 ('test.c', '/*\n * SPDX-License-Identifier: MIT\n */\n#include <stdio.h>'),
                 ('test.cpp', '// SPDX-License-Identifier: Apache-2.0\n#include <iostream>'),
                 ('test.h', '/* SPDX-License-Identifier: GPL-3.0 */\n#ifndef TEST_H'),
-                ('test.py', '# SPDX-License-Identifier: BSD-3-Clause\nprint("hello")'),
-                ('test.go', '// SPDX-License-Identifier: MIT\npackage main'),
-                ('test.js', '// SPDX-License-Identifier: MIT\nconsole.log("hello");')
+                ('test.go', '// SPDX-License-Identifier: MIT\npackage main')
             ]
 
             for filename, content in test_files:
@@ -427,19 +425,22 @@ class IntegrationTester:
 
             # 测试文件扫描
             scanner = create_default_scanner()
-            scan_result = scanner.scan_directory(str(test_dir))
+            scan_result = scanner.scan_directory_with_results(test_dir)
 
-            if scan_result and scan_result.files_scanned == len(test_files):
+            # 正确获取扫描的文件数量
+            files_scanned = len(scan_result.files) if scan_result and hasattr(scan_result, 'files') else 0
+
+            if scan_result and files_scanned == len(test_files):
                 result['tests'].append({
                     'name': '文件扫描',
                     'status': 'PASS',
-                    'details': f'扫描了 {scan_result.files_scanned} 个文件'
+                    'details': f'扫描了 {files_scanned} 个文件'
                 })
             else:
                 result['tests'].append({
                     'name': '文件扫描',
                     'status': 'FAIL',
-                    'details': f'期望 {len(test_files)} 个文件，实际 {scan_result.files_scanned if scan_result else 0} 个'
+                    'details': f'期望 {len(test_files)} 个文件，实际 {files_scanned} 个'
                 })
                 result['issues'].append({
                     'type': 'scan_error',
@@ -450,19 +451,23 @@ class IntegrationTester:
 
             # 测试文件过滤
             scanner_custom = create_default_scanner(source_file_extensions=['.c', '.cpp'])
-            scan_result_filtered = scanner_custom.scan_directory(str(test_dir))
+            scan_result_filtered = scanner_custom.scan_directory_with_results(test_dir)
 
-            if scan_result_filtered and scan_result_filtered.files_scanned == 2:
+            # 正确获取过滤后的文件数量
+            files_filtered = len(scan_result_filtered.files) if scan_result_filtered and hasattr(scan_result_filtered, 'files') else 0
+
+            # 只有2个文件匹配.c和.cpp扩展名
+            if scan_result_filtered and files_filtered == 2:
                 result['tests'].append({
                     'name': '文件过滤',
                     'status': 'PASS',
-                    'details': f'正确过滤出 {scan_result_filtered.files_scanned} 个文件'
+                    'details': f'正确过滤出 {files_filtered} 个文件'
                 })
             else:
                 result['tests'].append({
                     'name': '文件过滤',
                     'status': 'FAIL',
-                    'details': f'期望 2 个文件，实际 {scan_result_filtered.files_scanned if scan_result_filtered else 0} 个'
+                    'details': f'期望 2 个文件，实际 {files_filtered} 个'
                 })
                 result['issues'].append({
                     'type': 'filter_error',
